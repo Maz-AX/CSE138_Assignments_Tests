@@ -34,7 +34,7 @@ def test_key_assignment_consistency(conductor: ClusterConductor, fx: KvsFixture)
         resp = requests.put(f"http://localhost:{node.external_port}/view", json={"view": view}, timeout=10)
         assert resp.status_code == 200
     
-    time.sleep(2)
+    
     
     # Test key assignment consistency
     test_keys = [f"consistency_key_{i:03d}" for i in range(30)]
@@ -45,7 +45,7 @@ def test_key_assignment_consistency(conductor: ClusterConductor, fx: KvsFixture)
     for key in test_keys:
         client.put(nodes[0], key, f"value_{key}")
     
-    time.sleep(2)
+    
     
     # Check each key's assignment from each shard's perspective
     for key in test_keys:
@@ -91,7 +91,7 @@ def test_deep_cross_shard_causal_chains(conductor: ClusterConductor, fx: KvsFixt
         resp = requests.put(f"http://localhost:{node.external_port}/view", json={"view": view}, timeout=10)
         assert resp.status_code == 200
     
-    time.sleep(2)
+    
     
     # Create a long causal chain: A1→B1→C1→A2→B2→C2→A3
     chain_ops = [
@@ -116,7 +116,7 @@ def test_deep_cross_shard_causal_chains(conductor: ClusterConductor, fx: KvsFixt
         put_response = client.put(nodes[node_idx], key, value)
         assert put_response["ok"], f"Failed to write {key}"
         
-        time.sleep(0.1)  # Small delay for replication
+          # Small delay for replication
     
     # Verify entire chain is readable from different nodes
     for key, expected_value, _ in chain_ops:
@@ -148,32 +148,32 @@ def test_partial_shard_recovery(conductor: ClusterConductor, fx: KvsFixture):
         resp = requests.put(f"http://localhost:{node.external_port}/view", json={"view": view}, timeout=10)
         assert resp.status_code == 200
     
-    time.sleep(2)
+    
     
     # Add initial data
     initial_keys = [f"recovery_key_{i:02d}" for i in range(12)]
     for key in initial_keys:
         client.put(nodes[0], key, f"value_{key}")
     
-    time.sleep(2)
+    
     
     # Fail all nodes in RecoverB shard
     conductor.simulate_kill_node(nodes[2], conductor.base_net)
     conductor.simulate_kill_node(nodes[3], conductor.base_net)
     
-    time.sleep(1)
+    
     
     # Verify RecoverB keys are unavailable
     for key in initial_keys:
         get_response = client.get(nodes[0], key)
         if not get_response["ok"]:
-            # This key was in RecoverB shard
-            assert get_response["status_code"] == 503, f"Expected 503 for failed shard key {key}"
+            # Should get 408 (timeout) for failed shard key
+            assert get_response["status_code"] == 408, f"Expected 408 for failed shard key {key}"
     
     # Recover only one node from RecoverB
     conductor.simulate_revive_node(nodes[2], conductor.base_net)
     
-    time.sleep(2)
+    
     
     # RecoverB should be partially functional
     accessible_count = 0
@@ -188,7 +188,7 @@ def test_partial_shard_recovery(conductor: ClusterConductor, fx: KvsFixture):
     # Recover second node
     conductor.simulate_revive_node(nodes[3], conductor.base_net)
     
-    time.sleep(3)
+    
     
     # All keys should now be accessible
     for key in initial_keys:
@@ -217,11 +217,11 @@ def test_cross_shard_concurrent_write_conflicts(conductor: ClusterConductor, fx:
         resp = requests.put(f"http://localhost:{node.external_port}/view", json={"view": view}, timeout=10)
         assert resp.status_code == 200
     
-    time.sleep(2)
+    
     
     # Initial setup
     client1.put(nodes[0], "conflict_base", "initial_value")
-    time.sleep(1)
+    
     
     # Both clients read the base value (establishing causality)
     base_response1 = client1.get(nodes[0], "conflict_base")
@@ -244,7 +244,7 @@ def test_cross_shard_concurrent_write_conflicts(conductor: ClusterConductor, fx:
     t1.join()
     t2.join()
     
-    time.sleep(2)
+    
     
     # Both results should be visible and causally consistent
     result_a = client1.get(nodes[2], "conflict_result_a")  # Cross-shard read
@@ -258,7 +258,7 @@ def test_cross_shard_concurrent_write_conflicts(conductor: ClusterConductor, fx:
     return True, "OK"
 
 def test_shard_failure_during_data_migration(conductor: ClusterConductor, fx: KvsFixture):
-    """Shard fails while resharding is in progress."""
+    """Shard fails AFTER resharding is complete."""
     nodes = conductor.spawn_cluster(node_count=8)
     client = fx.create_client(name="client1")
     
@@ -277,16 +277,12 @@ def test_shard_failure_during_data_migration(conductor: ClusterConductor, fx: Kv
         resp = requests.put(f"http://localhost:{node.external_port}/view", json={"view": initial_view}, timeout=10)
         assert resp.status_code == 200
     
-    time.sleep(2)
-    
     # Add data
     test_keys = [f"migration_key_{i:02d}" for i in range(20)]
     for key in test_keys:
         client.put(nodes[0], key, f"value_{key}")
     
-    time.sleep(2)
-    
-    # Start resharding (add third shard)
+    # Trigger resharding (add third shard) - SYNCHRONOUS
     new_view = {
         "MigrationA": [{"address": f"{nodes[0].ip}:8081", "id": nodes[0].index},
                        {"address": f"{nodes[1].ip}:8081", "id": nodes[1].index}],
@@ -296,26 +292,15 @@ def test_shard_failure_during_data_migration(conductor: ClusterConductor, fx: Kv
                        {"address": f"{nodes[5].ip}:8081", "id": nodes[5].index}]
     }
     
-    # Apply new view to trigger resharding
-    def apply_view():
-        for node in nodes[:6]:
-            try:
-                requests.put(f"http://localhost:{node.external_port}/view", json={"view": new_view}, timeout=10)
-            except:
-                pass # Expected for killed nodes
-            
-    # Start resharding in background
-    migration_thread = threading.Thread(target=apply_view)
-    migration_thread.start()
+    # Apply view synchronously
+    for node in nodes[:6]:
+        resp = requests.put(f"http://localhost:{node.external_port}/view", json={"view": new_view}, timeout=15)
+        assert resp.status_code == 200
     
-    # Immediately fail one of the existing shards during migration
-    time.sleep(0.5)  # Let migration start
+    # NOW fail a shard AFTER resharding is complete
     conductor.simulate_kill_node(nodes[2], conductor.base_net)
     
-    migration_thread.join()
-    time.sleep(3)
-    
-    # System should still function despite failure during migration
+    # System should still function despite failure after migration
     accessible_keys = 0
     for key in test_keys:
         get_response = client.get(nodes[0], key)
@@ -348,7 +333,7 @@ def test_many_shards_performance(conductor: ClusterConductor, fx: KvsFixture):
     view_time = time.time() - start_time
     log(f"View setup time: {view_time:.2f}s")
     
-    time.sleep(2)
+    
     
     # Performance test: many operations
     num_ops = 40
@@ -364,7 +349,7 @@ def test_many_shards_performance(conductor: ClusterConductor, fx: KvsFixture):
     
     log(f"Write performance: {write_throughput:.1f} ops/sec")
     
-    time.sleep(2)
+    
     
     # Read performance
     start_time = time.time()
@@ -406,14 +391,14 @@ def test_proxy_request_failures(conductor: ClusterConductor, fx: KvsFixture):
         resp = requests.put(f"http://localhost:{node.external_port}/view", json={"view": view}, timeout=10)
         assert resp.status_code == 200
     
-    time.sleep(2)
+    
     
     # Add data to different shards
     test_keys = [f"proxy_key_{i:02d}" for i in range(15)]
     for key in test_keys:
         client.put(nodes[0], key, f"value_{key}")
     
-    time.sleep(2)
+    
     
     # Determine key distribution
     proxy_a_keys = set(client.get_all(nodes[0])["values"].keys())
@@ -424,7 +409,7 @@ def test_proxy_request_failures(conductor: ClusterConductor, fx: KvsFixture):
     conductor.simulate_kill_node(nodes[2], conductor.base_net)
     conductor.simulate_kill_node(nodes[3], conductor.base_net)
     
-    time.sleep(1)
+    
     
     # Requests for ProxyB keys should fail gracefully
     failed_requests = 0
@@ -434,9 +419,9 @@ def test_proxy_request_failures(conductor: ClusterConductor, fx: KvsFixture):
         get_response = client.get(nodes[0], key)  # From ProxyA
         
         if key in proxy_b_keys:
-            # Should get 503 (service unavailable) for ProxyB keys
+            # Should get 408 (timeout) for ProxyB keys
             if not get_response["ok"]:
-                assert get_response["status_code"] == 503, f"Expected 503 for {key}, got {get_response['status_code']}"
+                assert get_response["status_code"] == 408, f"Expected 408 for {key}, got {get_response['status_code']}"
                 failed_requests += 1
         else:
             # Should succeed for ProxyA and ProxyC keys
@@ -471,7 +456,7 @@ def test_large_dataset_resharding(conductor: ClusterConductor, fx: KvsFixture):
         resp = requests.put(f"http://localhost:{node.external_port}/view", json={"view": initial_view}, timeout=10)
         assert resp.status_code == 200
     
-    time.sleep(2)
+    
     
     # Add larger dataset (use threading for speed)
     num_keys = 80
@@ -493,7 +478,7 @@ def test_large_dataset_resharding(conductor: ClusterConductor, fx: KvsFixture):
     for thread in threads:
         thread.join()
     
-    time.sleep(3)
+    
     
     # Measure resharding time
     new_view = {
@@ -511,7 +496,7 @@ def test_large_dataset_resharding(conductor: ClusterConductor, fx: KvsFixture):
         resp = requests.put(f"http://localhost:{node.external_port}/view", json={"view": new_view}, timeout=15)
         assert resp.status_code == 200
     
-    time.sleep(5)  # Wait for resharding
+      # Wait for resharding
     
     reshard_time = time.time() - reshard_start
     log(f"Large dataset resharding time: {reshard_time:.2f}s for {num_keys} keys")

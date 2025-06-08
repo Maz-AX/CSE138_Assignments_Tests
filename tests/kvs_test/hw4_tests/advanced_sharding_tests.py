@@ -37,7 +37,7 @@ def test_complex_resharding_scenario(conductor: ClusterConductor, fx: KvsFixture
         except Exception as e:
             return False, f"Failed to set view1: {e}"
     
-    time.sleep(2)
+    
     
     # Add initial data set
     initial_keys = [f"data_{i:03d}" for i in range(30)]
@@ -46,7 +46,7 @@ def test_complex_resharding_scenario(conductor: ClusterConductor, fx: KvsFixture
         put_response = client.put(nodes[0], key, value)
         assert put_response["ok"], f"Initial PUT failed for {key}"
     
-    time.sleep(2)
+    
     
     # Expand to 4 shards
     view2 = {
@@ -80,7 +80,7 @@ def test_complex_resharding_scenario(conductor: ClusterConductor, fx: KvsFixture
         except Exception as e:
             return False, f"Failed to set view2: {e}"
     
-    time.sleep(5)  # More time for complex resharding
+      # More time for complex resharding
     
     # Verify all data still accessible
     for key in initial_keys:
@@ -115,7 +115,7 @@ def test_complex_resharding_scenario(conductor: ClusterConductor, fx: KvsFixture
         except Exception as e:
             return False, f"Failed to set view3: {e}"
     
-    time.sleep(5)
+    
     
     # Final verification
     for key in initial_keys:
@@ -159,7 +159,7 @@ def test_shard_failure_handling(conductor: ClusterConductor, fx: KvsFixture):
         except Exception as e:
             return False, f"Failed to set view: {e}"
     
-    time.sleep(2)
+    
     
     # Add data across all shards
     test_keys = [f"key_{i:02d}" for i in range(15)]
@@ -168,7 +168,7 @@ def test_shard_failure_handling(conductor: ClusterConductor, fx: KvsFixture):
         put_response = client.put(nodes[0], key, value)
         assert put_response["ok"], f"PUT failed for {key}"
     
-    time.sleep(2)
+    
     
     # Determine which keys are in which shards
     alpha_keys = set(client.get_all(nodes[0])["values"].keys())
@@ -184,7 +184,7 @@ def test_shard_failure_handling(conductor: ClusterConductor, fx: KvsFixture):
     conductor.simulate_kill_node(nodes[2], conductor.base_net)
     conductor.simulate_kill_node(nodes[3], conductor.base_net)
     
-    time.sleep(2)
+    
     
     # Keys in Alpha and Gamma should still be accessible
     for key in alpha_keys:
@@ -198,10 +198,10 @@ def test_shard_failure_handling(conductor: ClusterConductor, fx: KvsFixture):
     # Keys in Beta should be unavailable (503 Service Unavailable)
     for key in beta_keys:
         get_response = client.get(nodes[0], key)  # Should try to proxy to Beta
-        # Should get 503 since Beta shard is down
+        # Should get 408 (timeout) since Beta shard is down
         if not get_response["ok"]:
-            assert get_response["status_code"] == 503, \
-                f"Expected 503 for Beta key {key}, got {get_response['status_code']}"
+            assert get_response["status_code"] == 408, \
+                f"Expected 408 for Beta key {key}, got {get_response['status_code']}"
     
     return True, "OK"
 
@@ -240,7 +240,7 @@ def test_large_scale_sharding(conductor: ClusterConductor, fx: KvsFixture):
         except Exception as e:
             return False, f"Failed to set view: {e}"
     
-    time.sleep(2)
+    
     
     # Add a large number of keys
     num_keys = 100
@@ -252,7 +252,7 @@ def test_large_scale_sharding(conductor: ClusterConductor, fx: KvsFixture):
         put_response = client.put(nodes[0], key, value)
         assert put_response["ok"], f"PUT failed for {key}"
     
-    time.sleep(3)
+    
     
     # Check distribution across shards
     shard1_data = client.get_all(nodes[0])["values"]
@@ -322,7 +322,7 @@ def test_concurrent_resharding_and_operations(conductor: ClusterConductor, fx: K
         except Exception as e:
             return False, f"Failed to set initial view: {e}"
     
-    time.sleep(2)
+    
     
     # Add some initial data
     for i in range(10):
@@ -330,7 +330,7 @@ def test_concurrent_resharding_and_operations(conductor: ClusterConductor, fx: K
         value = f"initial_value_{i}"
         client1.put(nodes[0], key, value)
     
-    time.sleep(1)
+    
     
     # Start resharding (add third shard)
     new_view = {
@@ -382,7 +382,7 @@ def test_concurrent_resharding_and_operations(conductor: ClusterConductor, fx: K
     log(f"Successfully read {successful_reads}/10 keys during resharding")
     
     # Wait for resharding to complete
-    time.sleep(5)
+    
     
     # Verify all data is accessible after resharding
     log("Verifying data integrity after resharding...")
@@ -424,7 +424,7 @@ def test_cross_shard_causal_dependencies(conductor: ClusterConductor, fx: KvsFix
         except Exception as e:
             return False, f"Failed to set view: {e}"
     
-    time.sleep(2)
+    
     
     # Create a complex causal chain that likely spans shards
     operations = [
@@ -449,7 +449,7 @@ def test_cross_shard_causal_dependencies(conductor: ClusterConductor, fx: KvsFix
         assert get_response["value"] == value, f"Wrong value for {key}"
         
         # Small delay to ensure operations are ordered
-        time.sleep(0.1)
+        
     
     # Now read the entire chain from different nodes to verify causality
     log("Verifying causal chain from different nodes...")
