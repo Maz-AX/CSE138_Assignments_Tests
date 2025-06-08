@@ -66,7 +66,7 @@ def test_basic_two_shard_setup(conductor: ClusterConductor, fx: KvsFixture):
             return False, f"Failed to update view: {e}"
     
     # Wait for view changes to propagate
-    time.sleep(2)
+    
     
     # Test that we can put and get values (they might go to different shards)
     test_keys = ["key1", "key2", "key3", "key4", "key5"]
@@ -115,7 +115,7 @@ def test_key_distribution_across_shards(conductor: ClusterConductor, fx: KvsFixt
         except Exception as e:
             return False, f"Failed to update view: {e}"
     
-    time.sleep(2)
+    
     
     # Put many keys
     test_keys = [f"key_{i:03d}" for i in range(20)]
@@ -126,7 +126,7 @@ def test_key_distribution_across_shards(conductor: ClusterConductor, fx: KvsFixt
         assert put_response["ok"], f"PUT failed for {key}"
     
     # Wait for replication
-    time.sleep(2)
+    
     
     # Get all data from each shard separately
     shard_a_data = client.get_all(nodes[0])  # ShardA
@@ -188,7 +188,7 @@ def test_causal_consistency_across_shards(conductor: ClusterConductor, fx: KvsFi
         except Exception as e:
             return False, f"Failed to update view: {e}"
     
-    time.sleep(2)
+    
     
     # Create a causal chain that might span shards
     # Write key1
@@ -263,7 +263,7 @@ def test_transparent_proxying(conductor: ClusterConductor, fx: KvsFixture):
         except Exception as e:
             return False, f"Failed to update view: {e}"
     
-    time.sleep(2)
+    
     
     # Put keys from different nodes (some will require proxying)
     test_data = [
@@ -281,7 +281,7 @@ def test_transparent_proxying(conductor: ClusterConductor, fx: KvsFixture):
         put_response = client.put(nodes[node_idx], key, value)
         assert put_response["ok"], f"PUT failed for {key} from node {node_idx}"
     
-    time.sleep(2)
+    
     
     # Get data from different nodes (will require proxying for some)
     for i, (key, expected_value) in enumerate(test_data):

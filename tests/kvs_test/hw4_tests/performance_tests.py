@@ -36,7 +36,7 @@ def test_resharding_performance(conductor: ClusterConductor, fx: KvsFixture):
         except Exception as e:
             return False, f"Failed to set initial view: {e}"
     
-    time.sleep(2)
+    
     
     # Add a substantial number of keys to test performance
     num_keys = 100
@@ -53,7 +53,7 @@ def test_resharding_performance(conductor: ClusterConductor, fx: KvsFixture):
     insert_time = time.time() - start_time
     log(f"Data insertion took {insert_time:.2f} seconds ({num_keys/insert_time:.1f} ops/sec)")
     
-    time.sleep(2)
+    
     
     # Measure resharding time (add third shard)
     new_view = {
@@ -86,7 +86,7 @@ def test_resharding_performance(conductor: ClusterConductor, fx: KvsFixture):
             return False, f"Failed to set new view: {e}"
     
     # Wait for resharding to complete and measure time
-    time.sleep(1)  # Brief pause to let resharding start
+      # Brief pause to let resharding start
     
     # Verify all keys are accessible (resharding should be done)
     verification_start = time.time()
@@ -158,7 +158,7 @@ def test_throughput_with_sharding(conductor: ClusterConductor, fx: KvsFixture):
         except Exception as e:
             return False, f"Failed to set view: {e}"
     
-    time.sleep(2)
+    
     
     # Test write throughput
     num_writes = 50
@@ -178,7 +178,7 @@ def test_throughput_with_sharding(conductor: ClusterConductor, fx: KvsFixture):
     
     log(f"Write throughput: {write_throughput:.1f} ops/sec ({num_writes} ops in {write_duration:.2f}s)")
     
-    time.sleep(1)
+    
     
     # Test read throughput
     num_reads = 100
@@ -234,7 +234,7 @@ def test_proxy_overhead(conductor: ClusterConductor, fx: KvsFixture):
         except Exception as e:
             return False, f"Failed to set view: {e}"
     
-    time.sleep(2)
+    
     
     # Add keys and determine their shard assignment
     test_keys = [f"proxy_key_{i:02d}" for i in range(20)]
@@ -244,7 +244,7 @@ def test_proxy_overhead(conductor: ClusterConductor, fx: KvsFixture):
         put_response = client.put(nodes[0], key, value)
         assert put_response["ok"], f"PUT failed for {key}"
     
-    time.sleep(1)
+    
     
     # Identify which keys are local vs remote from node 0's perspective
     local_keys = set(client.get_all(nodes[0])["values"].keys())
@@ -337,7 +337,7 @@ def test_scalability_with_more_shards(conductor: ClusterConductor, fx: KvsFixtur
             except Exception as e:
                 return False, f"Failed to set {num_shards}-shard view: {e}"
         
-        time.sleep(3)
+        
         
         # Add test data for this configuration
         num_keys = 20
@@ -355,7 +355,7 @@ def test_scalability_with_more_shards(conductor: ClusterConductor, fx: KvsFixtur
         
         log(f"  Write throughput: {write_throughput:.1f} ops/sec")
         
-        time.sleep(1)
+        
         
         # Measure read performance
         read_start = time.time()
@@ -425,7 +425,7 @@ def test_concurrent_load_performance(conductor: ClusterConductor, fx: KvsFixture
         except Exception as e:
             return False, f"Failed to set view: {e}"
     
-    time.sleep(2)
+    
     
     # Each client performs operations concurrently
     operations_per_client = 20

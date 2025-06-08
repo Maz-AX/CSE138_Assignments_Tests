@@ -37,7 +37,7 @@ def test_shard_add_resharding(conductor: ClusterConductor, fx: KvsFixture):
         except Exception as e:
             return False, f"Failed to set initial view: {e}"
     
-    time.sleep(2)
+    
     
     # Add initial data
     initial_keys = [f"initial_key_{i:02d}" for i in range(10)]
@@ -46,7 +46,7 @@ def test_shard_add_resharding(conductor: ClusterConductor, fx: KvsFixture):
         put_response = client.put(nodes[0], key, value)
         assert put_response["ok"], f"PUT failed for {key}"
     
-    time.sleep(2)
+    
     
     # Record initial distribution
     shard1_before = client.get_all(nodes[0])["values"]
@@ -83,7 +83,7 @@ def test_shard_add_resharding(conductor: ClusterConductor, fx: KvsFixture):
             return False, f"Failed to set new view: {e}"
     
     # Wait for resharding to complete
-    time.sleep(5)
+    
     
     # Verify all data is still accessible
     for key in initial_keys:
@@ -145,7 +145,7 @@ def test_shard_removal_resharding(conductor: ClusterConductor, fx: KvsFixture):
         except Exception as e:
             return False, f"Failed to set initial view: {e}"
     
-    time.sleep(2)
+    
     
     # Add data across all shards
     test_keys = [f"removal_key_{i:02d}" for i in range(15)]
@@ -154,7 +154,7 @@ def test_shard_removal_resharding(conductor: ClusterConductor, fx: KvsFixture):
         put_response = client.put(nodes[0], key, value)
         assert put_response["ok"], f"PUT failed for {key}"
     
-    time.sleep(2)
+    
     
     # Record distribution before removal
     alpha_before = client.get_all(nodes[0])["values"]
@@ -189,7 +189,7 @@ def test_shard_removal_resharding(conductor: ClusterConductor, fx: KvsFixture):
             return False, f"Failed to set removal view: {e}"
     
     # Wait for resharding
-    time.sleep(5)
+    
     
     # Verify all data is still accessible from remaining shards
     for key in test_keys:
@@ -241,7 +241,7 @@ def test_minimal_data_movement(conductor: ClusterConductor, fx: KvsFixture):
         except Exception as e:
             return False, f"Failed to set initial view: {e}"
     
-    time.sleep(2)
+    
     
     # Add many keys to test distribution
     num_keys = 50
@@ -252,7 +252,7 @@ def test_minimal_data_movement(conductor: ClusterConductor, fx: KvsFixture):
         put_response = client.put(nodes[0], key, value)
         assert put_response["ok"], f"PUT failed for {key}"
     
-    time.sleep(2)
+    
     
     # Record initial distribution
     shard1_initial = set(client.get_all(nodes[0])["values"].keys())
@@ -291,7 +291,7 @@ def test_minimal_data_movement(conductor: ClusterConductor, fx: KvsFixture):
         except Exception as e:
             return False, f"Failed to set new view: {e}"
     
-    time.sleep(5)
+    
     
     # Check final distribution
     shard1_final = set(client.get_all(nodes[0])["values"].keys())
@@ -354,7 +354,7 @@ def test_resharding_preserves_causality(conductor: ClusterConductor, fx: KvsFixt
         except Exception as e:
             return False, f"Failed to set initial view: {e}"
     
-    time.sleep(2)
+    
     
     # Create a causal chain before resharding
     causal_keys = ["cause1", "effect1", "cause2", "effect2"]
@@ -377,7 +377,7 @@ def test_resharding_preserves_causality(conductor: ClusterConductor, fx: KvsFixt
     
     client.put(nodes[1], "effect2", "depends_on_cause2")
     
-    time.sleep(1)
+    
     
     # Trigger resharding by adding a third shard
     new_view = {
@@ -406,7 +406,7 @@ def test_resharding_preserves_causality(conductor: ClusterConductor, fx: KvsFixt
         except Exception as e:
             return False, f"Failed to set resharding view: {e}"
     
-    time.sleep(5)
+    
     
     # Verify causal relationships are preserved after resharding
     log("Verifying causal chain after resharding...")
