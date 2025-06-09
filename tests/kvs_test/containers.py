@@ -23,10 +23,15 @@ class ContainerBuilder:
         log(f"building container image {self.image_id}...")
         build_result = self.client.api.build(path=self.project_dir, rm=True, nocache=True, tag=self.image_id)
 
-        # Consume the generator to ensure the build completes
+        # Better error handling - print all output
         for chunk in build_result:
-            if isinstance(chunk, dict) and "error" in chunk:
-                raise Exception(f"Build error: {chunk['error']}")
+            if isinstance(chunk, bytes):
+                print(chunk.decode('utf-8'), end='')
+            elif isinstance(chunk, dict):
+                if "stream" in chunk:
+                    print(chunk["stream"], end='')
+                if "error" in chunk:
+                    raise Exception(f"Build error: {chunk['error']}")
 
         # ensure the image exists
         log(f"inspecting container image {self.image_id}...")
