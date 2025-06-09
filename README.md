@@ -1,4 +1,4 @@
-**CSE 138 ASSIGNMENTS TEST SUITE V1.4**
+**CSE 138 ASSIGNMENTS TEST SUITE V1.6**
 ---
 
 # How to run
@@ -125,6 +125,7 @@ Project Root:
 ```
 
 **Changelog:**
+* V1.6: Thanks to unnamed student, the delay in tests were removed and error codes were corrected. Also, I added logging for any failures during the building of a container when the test suite is run.
 * V1.5: Removed `test_no_operation_resharding` thanks to Kat's noticing that it is against Assignment 4's specifications, and added 8 new test cases under critical_edge_case_tests.py (which will also run faster thanks to multi-threading):
     * Key assignment consistency across nodes
     * Deep cross-shard causal chains
